@@ -2,7 +2,7 @@ import pygame, sys, random
 from koronis import *
 
 # Constants
-FRAMERATE = 90  # FPS
+FRAMERATE = 60  # FPS
 GAME_SPEEDUP_RATE = 5 # Every 5 seconds, the game speeds up
 
 MAX_ENEMIES = 5 # Max number of enemies on screen
@@ -32,7 +32,7 @@ def check_projectile_collision(projectiles, enemies, player, explosions):
                 player.score = player.score + enemy.size
                 
                 random.choice(explosions).play()
-                return
+                break
 
 
 def main():
@@ -111,14 +111,14 @@ def main():
         screen.blit(txt_begin, [screen_w / 2 - (txt_begin.get_width() / 2), screen_h / 2])
 
         clock.tick(FRAMERATE * 4)
-        pygame.display.flip()
+        pygame.display.update()
     
     duration = 0
     frame = 0
     frame_shield = 10
 
     # Main loop
-    while not dead:
+    while True:
         # Calculate time passed
         if frame == 0:
             duration = duration + 1
@@ -127,11 +127,12 @@ def main():
             if duration % GAME_SPEEDUP_RATE == 0:
                 speed = speed + 0.1
 
+        # Update invencibility
         if player.invencible:
             if duration > shield_time + SHIELD_DURATION:
                 player.invencible = False
 
-        # EVENT HANDLING
+        # Event handling
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -251,14 +252,13 @@ def main():
             pygame.draw.rect(screen, [60, 60, 70], reloadbar)
 
         for i in range(player.lives):
-            screen.blit(player.heart, [player.heart.get_width()  * i, screen_h - player.heart.get_height()])
+            screen.blit(player.heart, [screen_w - (player.heart.get_width() * (i + 1) + 15), 15])
         
         score = font.render("{:08d}".format(player.score), False, [255, 255, 255])
-        screen.blit(score, [screen_w - score.get_width(), screen_h - score.get_height()])
+        screen.blit(score, [15, 15])
 
         # End of loop
         frame = (frame + 1) % FRAMERATE
-
         clock.tick(FRAMERATE)
         pygame.display.update()
 
