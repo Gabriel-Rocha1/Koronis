@@ -74,9 +74,21 @@ class Player:
         self.invencible = False
         self.score = 0
 
-    def update_position(self, keys):
+    def update_position(self, keys, screen_size):
         self.position.x += (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) * self.speed
         self.position.y += (keys[pygame.K_DOWN] - keys[pygame.K_UP]) * self.speed
+
+        width, height = screen_size
+
+        if self.position.x  > width - self.sprite.get_width():
+            self.position.x = width - self.sprite.get_width()
+        if self.position.x  < 0:
+            self.position.x = 0
+        
+        if self.position.y  > height - self.sprite.get_height():
+            self.position.y = height - self.sprite.get_height()
+        if self.position.y  < 0:
+            self.position.y = 0
 
         if (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) > 0:
             self.direction = 'right'
@@ -99,39 +111,37 @@ class Player:
         
         self.hitbox.left = self.position.x + (self.sprite.get_width() / 4)
         self.hitbox.top  = self.position.y
-    
-    def update_reloadbar(self):
-        self.reloadbar.left = self.position.x + (self.sprite.get_width() / 4)
-        self.reloadbar.top  = self.position.y - 20
 
     def hit(self):
         self.lives = self.lives - 1
         self.invencible = True
-        self.sprite = self.sprites['invencible']
 
-    def set_orientation(self):
+        if self.direction == 'straight':
+            self.sprite = self.sprites['invencible']
+        elif self.direction == 'right':
+            self.sprite = self.sprites['inv_tilt_right']
+        elif self.direction == 'left':
+            self.sprite = self.sprites['inv_tilt_left']
+
+    def update_orientation(self):
         if self.direction == 'straight':
             self.sprite = self.sprites['invencible'] if self.invencible else self.sprites['normal']
             self.thrust = self.thrust_sprites[self.thrust_count]
-        else:
-            self.tilt_hitbox()
+
+            self.hitbox = self.default_hitbox
                 
-            if self.direction == 'right':
-                self.sprite = self.sprites['inv_tilt_right'] if self.invencible else self.sprites['tilt_right']
-                self.thrust = self.right_tilted_thrust[self.thrust_count]
-
-            elif self.direction == 'left':
-                self.sprite = self.sprites['inv_tilt_left'] if self.invencible else self.sprites['tilt_left']
-                self.thrust = self.left_tilted_thrust[self.thrust_count]
-
-    def tilt_hitbox(self):
-        self.hitbox = self.sprite.get_rect()
-        
-        if self.direction == 'right':
+        elif self.direction == 'right':
+            self.sprite = self.sprites['inv_tilt_right'] if self.invencible else self.sprites['tilt_right']
+            self.thrust = self.right_tilted_thrust[self.thrust_count]
+           
+            # TODO: fix hitbox
             self.hitbox.left = self.position.x + (self.sprite.get_width() / 4)
             self.hitbox.top = self.position.y + (self.sprite.get_height() / 4)
-        
+
         elif self.direction == 'left':
+            self.sprite = self.sprites['inv_tilt_left'] if self.invencible else self.sprites['tilt_left']
+            self.thrust = self.left_tilted_thrust[self.thrust_count]
+
             self.hitbox.left = self.position.x + (self.sprite.get_width() / 4)
             self.hitbox.top = self.position.y + (self.sprite.get_height() / 4)
 
@@ -191,7 +201,7 @@ class Nuke:
     def update_hitbox(self):
         self.hitbox.top = self.position.y
 
-    def offBounds(self):
+    def out_of_bounds(self):
         if self.position.y < 0:
             return True
         return False
@@ -209,7 +219,7 @@ class Astro:
         self.position = pygame.Vector2()
         self.position.y = random.randint(-200, -100)
         self.position.x = random.randint(0, screen_width - self.size)
-        self.speed = random.uniform(game_speed[0], game_speed[1])
+        self.speed = random.uniform(game_speed - 2, game_speed + 2)
         self.hitbox = pygame.Rect(self.position.x, self.position.y, self.sprite.get_width(), self.sprite.get_height())
 
         # Propreties:
@@ -222,7 +232,7 @@ class Astro:
         self.hitbox.left = self.position.x
         self.hitbox.top  = self.position.y
 
-    def offBounds(self, screen_height):
+    def out_of_bounds(self, screen_height):
         if self.position.y > screen_height:
             return True
         return False
@@ -241,8 +251,20 @@ class Planet (Astro):
 class BackgroundStar:
     colors = [[255,255,255], [166,168,255], [168,123,255]]
 
-    def __init__ (self, screen_width):
-        self.position = pygame.Vector2()
-        self.position.xy = [random.randint(0, screen_width), -2]
-        self.color = random.choice(self.colors)
+    def __init__ (self, screen_width, screen_height, y = None):
         self.size = 1
+        self.speed = random.uniform(0.5, 1.5)
+
+        self.position = pygame.Vector2()
+        self.position.x = random.randint(0, screen_width)
+        self.position.y = random.randint(0, screen_height) if y is None else y
+        self.color = random.choice(self.colors)
+    
+    def update(self):
+        self.position.y += self.speed
+
+    def out_of_bounds(self, screen_height):
+        return self.position.y > screen_height
+
+    def draw(self, screen):
+        pygame.draw.circle(screen, self.color, self.position, self.size)
