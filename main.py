@@ -1,17 +1,18 @@
 import pygame, sys, random, time
+from koronis import *
 
 #---------------------------------------------- GLOBALS ---------------------------------------------#
-SCREEN_W            = 900
-SCREEN_H            = 900
-FRAMERATE           = 60
-ENABLE_HITBOX       = False
-MAX_ENEMIES         = 5
-GAME_SPEEDUP_RATE   = 5
-PLANET_SPAWN_RATE   = 10
-STAR_SPAWN_RATE     = 15
-POWERUP_SPAWN_RATE  = 3
-RELOAD_TIME         = 2
-SHIELD_DURATION     = 1.5
+SCREEN_W = 900
+SCREEN_H = 900
+FRAMERATE = 60
+ENABLE_HITBOX = False
+MAX_ENEMIES = 5
+GAME_SPEEDUP_RATE = 5
+PLANET_SPAWN_RATE = 10
+STAR_SPAWN_RATE = 15
+POWERUP_SPAWN_RATE = 3
+RELOAD_TIME = 2
+SHIELD_DURATION = 1.5
 
 game_speed = [3, 7]
 
@@ -39,170 +40,16 @@ def check_projectile_collision(projectiles, enemies, player):
                 enemies.remove(enemy)
                 player.score += enemy.size
                 projectiles.remove(projectile)
-                explosion = pygame.mixer.Sound('data/sfx/explosion' + str(random.randint(1, 3)) + '.ogg')
+                explosion = pygame.mixer.Sound('data/sfx/explosion' + str(random.randint(1, 3)) + '.wav')
                 explosion.play()
                 break
 
-#---------------------------------------------- CLASSES -----------------------------------------------#
-class Nuke:
-    def __init__(self, player):
-        self.size          = 50
-        self.sprite_offset = self.size / 5
-        self.sprite        = pygame.image.load('data/gfx/nuke.png')
-        self.sprite        = pygame.transform.scale(self.sprite, (self.size, self.size))
-        
 
-        self.position   = pygame.Vector2()
-        self.position.x = player.position.x + 30
-        self.position.y = player.position.y
-        self.speed      = 15
-        self.hitbox     = pygame.Rect(self.position.x + self.sprite_offset, self.position.y, self.size - (2 * self.sprite_offset), self.size)
-    
-    def update_position(self):
-        self.position.y -= self.speed
-
-    def update_hitbox(self):
-        self.hitbox.top = self.position.y
-    
-    def offBounds(self):
-        if self.position.y < 0:
-            return True
-        return False
-
-class Player:
-    # Sprites
-    size              = 100
-    sprite            = pygame.image.load('data/gfx/player.png')
-    sprite            = pygame.transform.scale(sprite, (size, size))
-    invencible_sprite = pygame.image.load('data/gfx/invencible.png')
-    invencible_sprite = pygame.transform.scale(invencible_sprite, (size, size))
-    thrust            = pygame.image.load('data/gfx/thrust' + str(1) + '.png')
-    thrust            = pygame.transform.scale(thrust, (size, size))
-    thrustCount       = 1
-    heart             = pygame.image.load('data/gfx/heart.png')
-    heart             = pygame.transform.scale(heart, (32, 32))
-
-    # Physics
-    position       = pygame.Vector2()
-    position.xy    = (SCREEN_W / 2) - sprite.get_width(), SCREEN_H - sprite.get_height() - 10
-    speed          = 3
-    default_hitbox = pygame.Rect(position.x, position.y, sprite.get_width() - (sprite.get_width() / 2), sprite.get_height())
-    hitbox         = default_hitbox
-
-    # Utils
-    reloadBar  = pygame.Rect(position.x + (sprite.get_width() / 4), position.y - 20, sprite.get_width() - (sprite.get_width() / 2), 6)
-    nukes      = 1
-
-    # Proprieties
-    lives    = 3
-    invencible = False
-    score      = 0
-
-    def update_hitbox(self):
-        self.hitbox.left = self.position.x + (self.sprite.get_width() / 4)
-        self.hitbox.top  = self.position.y
-    
-    def update_reloadBar(self):
-        self.reloadBar.left = self.position.x + (self.sprite.get_width() / 4)
-        self.reloadBar.top  = self.position.y - 20
-
-    def tilt(self, sprite, direction):
-        if sprite == self.sprite or self.invencible_sprite:
-            self.tilt_hitbox(direction)
-        if direction == 'right':
-            return pygame.transform.rotozoom(sprite, -45, 1)
-        if direction == 'left':
-            return pygame.transform.rotozoom(sprite,  45, 1)
-        
-    def tilt_hitbox(self, direction):
-        self.hitbox = self.sprite.get_rect()
-        if direction == 'right':
-            self.hitbox.left = self.position.x + (self.sprite.get_width()  / 4)
-            self.hitbox.top  = self.position.y + (self.sprite.get_height() / 4)
-        if direction == 'left':
-            self.hitbox.left = self.position.x + (self.sprite.get_width()  / 4)
-            self.hitbox.top  = self.position.y + (self.sprite.get_height() / 4)
-
-    def change_thrust(self):
-        if self.thrustCount == 8:
-            self.thrustCount = 0
-        self.thrust = pygame.image.load('data/gfx/thrust' + str(self.thrustCount + 1) + '.png')
-        self.thrust = pygame.transform.scale(self.thrust, (self.size, self.size))
-        self.thrustCount += 1
-
-class Asteroid:
-    def __init__ (self):
-        # Sprite
-        self.sprite = pygame.image.load('data/gfx/asteroid' + str(random.randint(1,3)) + '.png')
-        self.size   = random.randint(25, 50)
-        self.sprite = pygame.transform.scale(self.sprite, (self.size, self.size))
-
-        # Physics
-        self.position   = pygame.Vector2()
-        self.position.y = random.randint(-200, -100)
-        self.position.x = random.randint(0, SCREEN_W - self.size)
-        self.speed      = random.uniform(game_speed[0], game_speed[1])
-        self.hitbox     = pygame.Rect(self.position.x, self.position.y, self.sprite.get_width(), self.sprite.get_height())
-
-        # Propreties:
-        self.isDestructible = True
-
-    def update_position(self):
-        self.position.y += self.speed
-
-    def update_hitbox(self):
-        self.hitbox.left = self.position.x
-        self.hitbox.top  = self.position.y
-
-    def offBounds(self):
-        if self.position.y > SCREEN_H:
-            return True
-        return False
-
-class Planet:
-    def __init__(self):
-        # Sprite
-        self.sprite = pygame.image.load('data/gfx/planet' + str(random.randint(1, 2)) + '.png')
-        self.size   = random.randint(125, 150)
-        self.sprite = pygame.transform.scale(self.sprite, (self.size, self.size))
-        
-        # Physics
-        self.position   = pygame.Vector2()
-        self.position.y = random.randint(-200, -100)
-        self.position.x = random.randint(0, SCREEN_W - self.size)
-        self.speed      = game_speed[1] + 1
-        self.hitbox     = pygame.Rect(self.position.x, self.position.y, self.sprite.get_width(), self.sprite.get_height())
-
-        # Proprieties
-        self.isDestructible = True
-
-    def update_position(self):
-        self.position.y += self.speed
-
-    def update_hitbox(self):
-        self.hitbox.left = self.position.x
-        self.hitbox.top  = self.position.y
-
-    def offBounds(self):
-        if self.position.y > SCREEN_H:
-            return True
-        return False
-
-class BackgroundStar:
-    colors = [[255,255,255], [166,168,255], [168,123,255]]
-
-    def __init__ (self):
-        self.position = pygame.Vector2()
-        self.position.xy = [random.randint(0, SCREEN_W), -2]
-        self.color = random.choice(self.colors)
-        self.size = 1
-
-#----------------------------------------------- SETUP ------------------------------------------------#
 def main():
     # PYGAME AND CLOCK
     pygame.init()
     pygame.display.set_caption("Koronis")
-    hit = pygame.mixer.Sound('data/sfx/hit.ogg')
+    hit = pygame.mixer.Sound('data/sfx/hit.wav')
     font = pygame.font.Font('data/font/8-BIT_WONDER.TTF', 27)
     clock  = pygame.time.Clock()
     screen = pygame.display.set_mode([SCREEN_W, SCREEN_H])
@@ -210,26 +57,26 @@ def main():
     # BACKGROUND
     background_stars = []
     for i in range(50):
-        background_stars.append(BackgroundStar())
+        background_stars.append(BackgroundStar(SCREEN_W))
         background_stars[i].position.y = random.randint(0, SCREEN_H)
 
     # PLAYER
-    player      = Player()
+    player = Player(100, SCREEN_W, SCREEN_H)
     projectiles = []
-    dead        = False
+    dead = False
 
     # UTILS
-    oneSecond      = 1
-    frameLives     = 10
-    currFrame      = 1
-    reloading      = False
-    planet_spawn   = PLANET_SPAWN_RATE
-    game_speedup   = GAME_SPEEDUP_RATE
+    oneSecond = 1
+    frameLives = 10
+    currFrame = 1
+    reloading = False
+    planet_spawn = PLANET_SPAWN_RATE
+    game_speedup = GAME_SPEEDUP_RATE
 
     # ENEMIES
     enemies = []
     for i in range(MAX_ENEMIES):
-        newAsteroid = Asteroid()
+        newAsteroid = Asteroid((50, 75), game_speed, SCREEN_W)
         enemies.append(newAsteroid)
 
 
@@ -258,7 +105,7 @@ def main():
             star.position.y += 0.5
             if star.position.y > SCREEN_H:
                 background_stars.remove(star)
-                background_stars.append(BackgroundStar())
+                background_stars.append(BackgroundStar(SCREEN_W))
         
         # DRAW BACKGROUND
         screen.fill([0, 0, 0])
@@ -291,7 +138,7 @@ def main():
             game_speed[1] += 0.1
         
         if timePassed > oneSecond:
-            oneSecond    += 1
+            oneSecond += 1
             player.score += 1
         
         if player.invencible:
@@ -304,21 +151,19 @@ def main():
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.KEYDOWN:
+                # Spacebar pressed
                 if event.key == pygame.K_SPACE:
-                    if not reloading and player.nukes > 0:
-                        player.nukes -= 1
-                        newNuke       = Nuke(player)
-                        projectiles.append(newNuke)
-                        if player.nukes == 0:
-                            reloading      = True
-                            reloadProgress = timePassed
+                    if not reloading:
+                        projectiles.append(Nuke(player))
+                        reloading = True
+                        reloadProgress = timePassed
 
         # UPDATE BACKGROUND
         for star in background_stars:
             star.position.y += 0.5
             if star.position.y > SCREEN_H:
                 background_stars.remove(star)
-                background_stars.append(BackgroundStar())
+                background_stars.append(BackgroundStar(SCREEN_W))
 
         # UPDATE PLAYER
         player.hitbox = player.default_hitbox
@@ -333,25 +178,24 @@ def main():
         if reloading:
             if timePassed >= reloadProgress + RELOAD_TIME:
                 reloading = False
-                player.nukes += 1  
 
         # UPDATE ENEMIES
         if timePassed > planet_spawn:
             planet_spawn += PLANET_SPAWN_RATE
-            newPlanet = Planet()
+            newPlanet = Planet((125, 150), game_speed, SCREEN_W)
             enemies.append(newPlanet)
 
         if len(enemies) < MAX_ENEMIES:
-                newAsteroid = Asteroid()
+                newAsteroid = Asteroid((50, 75), game_speed, SCREEN_W)
                 enemies.append(newAsteroid)
 
         for enemy in enemies:
             enemy.update_position()
             enemy.update_hitbox()
 
-            if enemy.offBounds():
+            if enemy.offBounds(SCREEN_H):
                 enemies.remove(enemy)
-                newAsteroid = Asteroid()
+                newAsteroid = Asteroid((50, 75), game_speed, SCREEN_W)
                 enemies.append(newAsteroid)
 
         # UPDATE PROJECTILES
@@ -471,7 +315,7 @@ def main():
                             projectiles = []
                             enemies     = []
                             for i in range(MAX_ENEMIES):
-                                newAsteroid = Asteroid()
+                                newAsteroid = Asteroid((50, 75), game_speed, SCREEN_W)
                                 enemies.append(newAsteroid)
                             start = time.time()
                             dead  = False
