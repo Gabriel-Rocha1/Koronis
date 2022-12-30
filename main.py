@@ -2,7 +2,7 @@ import pygame, sys, random
 from koronis import *
 
 # Constants
-FRAMERATE = 60  # FPS
+FRAMERATE = 90  # FPS
 GAME_SPEEDUP_RATE = 5 # Every 5 seconds, the game speeds up
 
 MAX_ENEMIES = 5 # Max number of enemies on screen
@@ -14,7 +14,7 @@ RELOAD_TIME = 2 # Time to reload
 SHIELD_DURATION = 1.5 # Time the invencibility lasts
 
 # Debug options
-ENABLE_HITBOX = True
+ENABLE_HITBOX = False
 
 
 def check_enemies_collision(player, enemies):
@@ -39,12 +39,12 @@ def main():
     screen_w = 900
     screen_h = 900
 
-    speed = 5
+    speed = 3
 
     # Pygame setup
     pygame.init()
     pygame.display.set_caption("Koronis")
-    screen = pygame.display.set_mode([screen_w, screen_h])
+    screen = pygame.display.set_mode([screen_w, screen_h], pygame.DOUBLEBUF)
 
     hit = pygame.mixer.Sound('data/sfx/hit.wav')
 
@@ -55,7 +55,6 @@ def main():
     ]
 
     font = pygame.font.Font('data/font/8-BIT_WONDER.TTF', 27)
-    clock = pygame.time.Clock()
 
     # Background setup
     stars = []
@@ -77,7 +76,8 @@ def main():
     title_font = pygame.font.Font('data/font/8-BIT_WONDER.TTF', 81)
     txt_title = title_font.render("KORONIS", False, [255, 255, 255])
     txt_begin = font.render("[ SPACE ]    START", False, [255, 255, 255])
-    
+
+    clock = pygame.time.Clock()
     ready = False
 
     # Start menu
@@ -125,7 +125,7 @@ def main():
             player.score = player.score + 1
         
             if duration % GAME_SPEEDUP_RATE == 0:
-                speed = speed + 0.5
+                speed = speed + 0.1
 
         if player.invencible:
             if duration > shield_time + SHIELD_DURATION:
@@ -144,6 +144,18 @@ def main():
                         projectiles.append(Nuke(player))
                         reloading = True
                         reload_cooldown = RELOAD_TIME * FRAMERATE
+                
+                # Escape pressed
+                if event.key == pygame.K_ESCAPE:
+                    paused = True
+                    while paused:
+                        for event in pygame.event.get():
+                            if event.type == pygame.QUIT:
+                                pygame.quit()
+                                sys.exit()
+                            if event.type == pygame.KEYDOWN:
+                                if event.key == pygame.K_ESCAPE:
+                                    paused = False
 
         # Update background
         for star in stars:
@@ -152,6 +164,7 @@ def main():
                 stars.remove(star)
                 stars.append(BackgroundStar(screen_w, screen_h, y = -10))
 
+        # Update player
         keys = pygame.key.get_pressed()
         player.update_position(keys, (screen_w, screen_w))
         player.update_orientation()
@@ -250,11 +263,11 @@ def main():
         pygame.display.update()
 
         if dead:
-            scoreFont = pygame.font.Font('data/font/8-BIT_WONDER.TTF', 18)
-            txt_score = scoreFont.render("score " + str(player.score),  False, [255, 255, 255])
-            deadText = font.render("You died",     False, [255, 255, 255])
-            deadCont = font.render("[ SPACE ]   Continue", False, [255, 255, 255])
-            deadQuit = font.render("[ ESC ]       Exit",    False, [255, 255, 255])
+            score_font = pygame.font.Font('data/font/8-BIT_WONDER.TTF', 18)
+            txt_score = score_font.render("score " + str(player.score),  False, [255, 255, 255])
+            txt_dead = font.render("You died",     False, [255, 255, 255])
+            txt_continue = font.render("[ SPACE ]   Continue", False, [255, 255, 255])
+            txt_quit = font.render("[ ESC ]       Exit",    False, [255, 255, 255])
             while dead:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
@@ -278,10 +291,10 @@ def main():
                             speed = 5
                 
                 screen.fill([0, 0, 0])
-                screen.blit(deadText, [screen_w / 2 - (deadText.get_width() / 2), screen_h / 4])
-                screen.blit(txt_score, [screen_w / 2 - (txt_score.get_width() / 2), screen_h / 4 + (2 * deadText.get_height())])
-                screen.blit(deadCont, [screen_w / 2 - (deadCont.get_width() / 2), screen_h / 2])
-                screen.blit(deadQuit, [screen_w / 2 - (deadCont.get_width() / 2), screen_h / 2 + deadCont.get_height() * 2])
+                screen.blit(txt_dead, [screen_w / 2 - (txt_dead.get_width() / 2), screen_h / 4])
+                screen.blit(txt_score, [screen_w / 2 - (txt_score.get_width() / 2), screen_h / 4 + (2 * txt_dead.get_height())])
+                screen.blit(txt_continue, [screen_w / 2 - (txt_continue.get_width() / 2), screen_h / 2])
+                screen.blit(txt_quit, [screen_w / 2 - (txt_continue.get_width() / 2), screen_h / 2 + txt_continue.get_height() * 2])
                 pygame.display.update()
 
 if __name__ == "__main__":
