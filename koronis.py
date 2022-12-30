@@ -6,19 +6,48 @@ class Player:
     def __init__(self, size, screen_width, screen_height):
         self.size = size
 
-        self.sprite = pygame.transform.scale(
+        normal_sprite = pygame.transform.scale(
             pygame.image.load('data/gfx/player.png'), 
             (self.size, self.size))
         
-        self.invencible_sprite = pygame.transform.scale(
+        invencible_sprite = pygame.transform.scale(
             pygame.image.load('data/gfx/invencible.png'), 
             (self.size, self.size))
 
-        self.thrust = pygame.transform.scale(
-            pygame.image.load('data/gfx/thrust' + str(1) + '.png'), 
-            (self.size, self.size))
+        self.sprites = {
+            'normal': normal_sprite,
+            'tilt_right': pygame.transform.rotozoom(normal_sprite, -45, 1),
+            'tilt_left': pygame.transform.rotozoom(normal_sprite, 45, 1),
+            
+            'invencible': invencible_sprite,
+            'inv_tilt_right': pygame.transform.rotozoom(invencible_sprite, -45, 1),
+            'inv_tilt_left': pygame.transform.rotozoom(invencible_sprite, 45, 1)
+        }
 
-        self.thrustCount = 1
+        self.thrust_sprites = [
+            pygame.transform.scale(
+                pygame.image.load('data/gfx/thrust' + str(i) + '.png'), 
+                (self.size, self.size)) 
+            for i in range(8)
+            ]
+
+        self.right_tilted_thrust = [
+            pygame.transform.rotozoom(self.thrust_sprites[i], -45, 1)
+            for i in range(8)
+        ]
+
+        self.left_tilted_thrust = [
+            pygame.transform.rotozoom(self.thrust_sprites[i], 45, 1)
+            for i in range(8)
+        ]
+
+        self.direction = 'straight'
+        self.stopped = True
+
+        self.sprite = self.sprites['normal']        
+        self.thrust = self.thrust_sprites[0]
+
+        self.thrust_count = 0
 
         heart = pygame.image.load('data/gfx/heart.png')
         self.heart = pygame.transform.scale(heart, (32, 32))
@@ -35,7 +64,7 @@ class Player:
 
         self.hitbox = self.default_hitbox
 
-        self.reloadBar = pygame.Rect(
+        self.reloadbar = pygame.Rect(
             self.position.x + (self.sprite.get_width() / 4),
             self.position.y - 20,
             self.sprite.get_width() - (self.sprite.get_width() / 2),
@@ -45,37 +74,97 @@ class Player:
         self.invencible = False
         self.score = 0
 
-    def update_hitbox(self):
+    def update_position(self, keys):
+        self.position.x += (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) * self.speed
+        self.position.y += (keys[pygame.K_DOWN] - keys[pygame.K_UP]) * self.speed
+
+        if (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) > 0:
+            self.direction = 'right'
+        
+        if (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) < 0:
+            self.direction = 'left'
+        
+        if (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) == 0:
+            self.direction = 'straight'
+
+        if (keys[pygame.K_DOWN] + keys[pygame.K_UP] + 
+            keys[pygame.K_RIGHT] + keys[pygame.K_LEFT]) == 0:
+             self.stopped = True
+        else:
+             self.stopped = False
+
+
+        self.sprite_rect = self.sprite.get_rect(
+            center = [self.position.x, self.position.y])
+        
         self.hitbox.left = self.position.x + (self.sprite.get_width() / 4)
         self.hitbox.top  = self.position.y
     
-    def update_reloadBar(self):
-        self.reloadBar.left = self.position.x + (self.sprite.get_width() / 4)
-        self.reloadBar.top  = self.position.y - 20
+    def update_reloadbar(self):
+        self.reloadbar.left = self.position.x + (self.sprite.get_width() / 4)
+        self.reloadbar.top  = self.position.y - 20
 
-    def tilt(self, sprite, direction):
-        if sprite == self.sprite or self.invencible_sprite:
-            self.tilt_hitbox(direction)
-        if direction == 'right':
-            return pygame.transform.rotozoom(sprite, -45, 1)
-        if direction == 'left':
-            return pygame.transform.rotozoom(sprite,  45, 1)
-        
-    def tilt_hitbox(self, direction):
+    def hit(self):
+        self.lives = self.lives - 1
+        self.invencible = True
+        self.sprite = self.sprites['invencible']
+
+    def set_orientation(self):
+        if self.direction == 'straight':
+            self.sprite = self.sprites['invencible'] if self.invencible else self.sprites['normal']
+            self.thrust = self.thrust_sprites[self.thrust_count]
+        else:
+            self.tilt_hitbox()
+                
+            if self.direction == 'right':
+                self.sprite = self.sprites['inv_tilt_right'] if self.invencible else self.sprites['tilt_right']
+                self.thrust = self.right_tilted_thrust[self.thrust_count]
+
+            elif self.direction == 'left':
+                self.sprite = self.sprites['inv_tilt_left'] if self.invencible else self.sprites['tilt_left']
+                self.thrust = self.left_tilted_thrust[self.thrust_count]
+
+    def tilt_hitbox(self):
         self.hitbox = self.sprite.get_rect()
-        if direction == 'right':
-            self.hitbox.left = self.position.x + (self.sprite.get_width()  / 4)
-            self.hitbox.top  = self.position.y + (self.sprite.get_height() / 4)
-        if direction == 'left':
-            self.hitbox.left = self.position.x + (self.sprite.get_width()  / 4)
-            self.hitbox.top  = self.position.y + (self.sprite.get_height() / 4)
+        
+        if self.direction == 'right':
+            self.hitbox.left = self.position.x + (self.sprite.get_width() / 4)
+            self.hitbox.top = self.position.y + (self.sprite.get_height() / 4)
+        
+        elif self.direction == 'left':
+            self.hitbox.left = self.position.x + (self.sprite.get_width() / 4)
+            self.hitbox.top = self.position.y + (self.sprite.get_height() / 4)
 
-    def change_thrust(self):
-        if self.thrustCount == 8:
-            self.thrustCount = 0
-        self.thrust = pygame.image.load('data/gfx/thrust' + str(self.thrustCount + 1) + '.png')
-        self.thrust = pygame.transform.scale(self.thrust, (self.size, self.size))
-        self.thrustCount += 1
+    def change_thrust(self):        
+        if self.direction == 'straight':
+            self.thrust = self.thrust_sprites[self.thrust_count]
+        elif self.direction == 'right':
+            self.thrust = self.right_tilted_thrust[self.thrust_count]
+        elif self.direction == 'left':
+            self.thrust = self.left_tilted_thrust[self.thrust_count]
+        
+        self.thrust_count = (self.thrust_count + 1) % 8
+    
+    def draw(self, screen):
+        if not self.stopped:
+            if self.direction == 'straight':
+                thrust_position = [
+                    self.position.x, 
+                    self.position.y + self.sprite.get_height()]
+            
+            elif self.direction == 'right':
+                thrust_position = [
+                    self.position.x - (self.sprite.get_width() / 2), 
+                    self.position.y + (self.sprite.get_height() / 2)]
+            
+            elif self.direction == 'left':
+                thrust_position = [
+                    self.position.x + (self.sprite.get_width() / 2), 
+                    self.position.y + (self.sprite.get_height() / 2)]
+
+            screen.blit(self.thrust, thrust_position)
+        
+        screen.blit(self.sprite, self.position)
 
 
 class Nuke:

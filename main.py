@@ -67,7 +67,7 @@ def main():
 
     # UTILS
     oneSecond = 1
-    frameLives = 10
+    frame_lives = 10
     currFrame = 1
     reloading = False
     planet_spawn = PLANET_SPAWN_RATE
@@ -76,8 +76,7 @@ def main():
     # ENEMIES
     enemies = []
     for i in range(MAX_ENEMIES):
-        newAsteroid = Asteroid((50, 75), game_speed, SCREEN_W)
-        enemies.append(newAsteroid)
+        enemies.append(Asteroid((50, 75), game_speed, SCREEN_W))
 
 
     # TITLE SCREEN
@@ -123,14 +122,13 @@ def main():
 
 #------------------------------------------ MAIN GAME LOOP ------------------------------------------#
     while not dead:
-        
-        # CALCULATE TIME
+        # Calculate time passed
         curr = time.time()
         timePassed = curr - start
         if currFrame == 61:
             currFrame = 1
             if not check_enemies_collision(player, enemies):
-                frameLives = 10
+                frame_lives = 10
         
         if timePassed > game_speedup:
             game_speedup += GAME_SPEEDUP_RATE
@@ -165,15 +163,8 @@ def main():
                 background_stars.remove(star)
                 background_stars.append(BackgroundStar(SCREEN_W))
 
-        # UPDATE PLAYER
-        player.hitbox = player.default_hitbox
-        keys = pygame.key.get_pressed()
-        player.position.x += (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT])  * player.speed
-        player.position.x -= (keys[pygame.K_LEFT]  - keys[pygame.K_RIGHT]) * player.speed
-        player.position.y += (keys[pygame.K_DOWN]  - keys[pygame.K_UP])    * player.speed
-        player.position.y -= (keys[pygame.K_UP]    - keys[pygame.K_DOWN])  * player.speed
-        player.sprite_rect = player.sprite.get_rect(center = [player.position.x, player.position.y])
-        player.update_hitbox()
+        player.update_position(pygame.key.get_pressed())
+        player.set_orientation()
 
         if reloading:
             if timePassed >= reloadProgress + RELOAD_TIME:
@@ -219,37 +210,15 @@ def main():
         if reloading:
             stage = (reloadProgress + RELOAD_TIME - timePassed) * (RELOAD_TIME * 10)
             
-            reloadBar = pygame.Rect(player.position.x + (player.sprite.get_width() / 3), player.position.y - 20, stage, 5)
-            pygame.draw.rect(screen, [60, 60, 70], reloadBar)
+            reloadbar = pygame.Rect(player.position.x + (player.sprite.get_width() / 3), player.position.y - 20, stage, 5)
+            pygame.draw.rect(screen, [60, 60, 70], reloadbar)
 
         # DRAW PLAYER
         if currFrame % 5 == 0:
             player.change_thrust()
+
         
-        if player.invencible:
-            rocket = player.invencible_sprite
-        else:
-            rocket = player.sprite
-
-        thrust = player.thrust
-
-        if (keys[pygame.K_UP]    and not keys[pygame.K_DOWN])  or \
-           (keys[pygame.K_LEFT]  and not keys[pygame.K_RIGHT]) or \
-           (keys[pygame.K_RIGHT] and not keys[pygame.K_LEFT]):
-            thrust_pos = [player.position.x, player.position.y + rocket.get_height()]
-
-            if   (keys[pygame.K_LEFT] and not keys[pygame.K_RIGHT]):
-                rocket     = player.tilt(rocket, 'left')
-                thrust     = player.tilt(player.thrust, 'left')
-                thrust_pos = [player.position.x + (rocket.get_width() / 2), player.position.y + (rocket.get_height() / 2)]
-
-            elif (keys[pygame.K_RIGHT] and not keys[pygame.K_LEFT]):
-                rocket     = player.tilt(rocket, 'right')
-                thrust     = player.tilt(player.thrust, 'right')
-                thrust_pos = [player.position.x - (rocket.get_width() / 2), player.position.y + (rocket.get_height() / 2)]
-            
-            screen.blit(thrust, thrust_pos)   
-        screen.blit(rocket, player.position)
+        player.draw(screen)
 
         # DRAW ENEMIES
         for enemy in enemies:
@@ -257,7 +226,7 @@ def main():
 
         # DRAW UI
         if reloading:
-            player.update_reloadBar()
+            player.update_reloadbar()
         
         for i in range(player.lives):
             screen.blit(player.heart, [player.heart.get_width()  * i, SCREEN_H - player.heart.get_height()])
@@ -279,20 +248,20 @@ def main():
         check_wall_collision(player)
         check_projectile_collision(projectiles, enemies, player)
         if not player.invencible and check_enemies_collision(player, enemies):
-            frameLives -= 1
+            frame_lives = frame_lives - 1
 
         # END OF LOOP
         currFrame += 1
         clock.tick(FRAMERATE)
         pygame.display.update()
 
-        if frameLives <= 0:
+        if frame_lives < 0:
+            frame_lives = 10
+            player.hit()
             hit.play()
-            frameLives        = 10
-            player.lives     -= 1
-            player.invencible = True
-            shieldTime        = timePassed
-            if player.lives  == 0:
+
+            shieldTime = timePassed
+            if player.lives == 0:
                 dead = True
 
         if dead:
