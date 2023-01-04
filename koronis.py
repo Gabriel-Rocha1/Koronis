@@ -53,7 +53,9 @@ class Player:
         self.heart = pygame.transform.scale(heart, (32, 32))
 
         self.position = pygame.Vector2()
-        self.position.xy = (screen_width / 2) - self.sprite.get_width(), screen_height - self.sprite.get_height() - 10
+        self.position.x = (screen_width / 2) - (self.sprite.get_width() / 2)
+        self.position.y = screen_height - self.sprite.get_height() - 10
+        
         self.speed = 3
 
         self.default_hitbox = pygame.Rect(

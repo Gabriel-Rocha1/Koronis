@@ -3,9 +3,9 @@ from koronis import *
 
 # Constants
 FRAMERATE = 60  # FPS
-GAME_SPEEDUP_RATE = 5 # Every 5 seconds, the game speeds up
+GAME_SPEEDUP_RATE = 5 # Every 5 seconds, the game speeds up 
 
-MAX_ENEMIES = 5 # Max number of enemies on screen
+MAX_ENEMIES = 8 # Max number of enemies on screen
 PLANET_SPAWN_RATE = 10 # Every 10 seconds, a planet spawns
 STAR_SPAWN_RATE = 15 # Every 15 seconds, a star spawns
 POWERUP_SPAWN_RATE = 3 # Every 3 seconds, a powerup spawns
@@ -54,12 +54,38 @@ def main():
         pygame.mixer.Sound('data/sfx/explosion3.wav')
     ]
 
-    font = pygame.font.Font('data/font/8-BIT_WONDER.TTF', 27)
+    font_small = pygame.font.Font('data/font/8-BIT_WONDER.TTF', 18)
+    font_normal = pygame.font.Font('data/font/8-BIT_WONDER.TTF', 27)
+    font_big = pygame.font.Font('data/font/8-BIT_WONDER.TTF', 32)
+    font_large = pygame.font.Font('data/font/8-BIT_WONDER.TTF', 81)
+    
+
 
     # Background setup
     stars = []
     for i in range(50):
         stars.append(BackgroundStar(screen_w, screen_h))
+
+    # UI setup
+    key_size = 50
+    key_sprites = {
+        'up': pygame.transform.scale(
+            pygame.image.load('data/gfx/key_up.png'), 
+            (key_size, key_size)),
+        
+        'down': pygame.transform.scale(
+            pygame.image.load('data/gfx/key_down.png'),
+            (key_size, key_size)),
+        
+        'left': pygame.transform.scale(
+            pygame.image.load('data/gfx/key_left.png'),
+            (key_size, key_size)),
+        
+        'right': pygame.transform.scale(
+            pygame.image.load('data/gfx/key_right.png'),
+            (key_size, key_size))
+    }
+    
 
     # Player setup
     player = Player(100, screen_w, screen_h)
@@ -72,10 +98,17 @@ def main():
     for i in range(MAX_ENEMIES):
         enemies.append(Asteroid((50, 75), speed, screen_w))
 
-    # Start menu label
-    title_font = pygame.font.Font('data/font/8-BIT_WONDER.TTF', 81)
-    txt_title = title_font.render("KORONIS", False, [255, 255, 255])
-    txt_begin = font.render("[ SPACE ]    START", False, [255, 255, 255])
+    # Text objects setup
+    text = {
+        'title': font_large.render("KORONIS", False, [255, 255, 255]),
+        'space': font_big.render("[   SPACE  ]", False, [255, 255, 255]),
+        'shoot': font_small.render("SHOOT", False, [255, 255, 255]),
+        'move': font_small.render("MOVE", False, [255, 255, 255]),
+        'begin': font_small.render("PRESS SPACE TO START", False, [255, 255, 255]),
+        'game_over': font_large.render("GAME OVER", False, [255, 255, 255]),
+        'restart': font_normal.render("[ SPACE ]    RESTART", False, [255, 255, 255]),
+        'quit': font_normal.render("[ ESC ]    QUIT", False, [255, 255, 255])
+    }
 
     clock = pygame.time.Clock()
     ready = False
@@ -107,8 +140,42 @@ def main():
         
         screen.blit(player.sprite, player.position)
 
-        screen.blit(txt_title, [screen_w / 2 - (txt_title.get_width() / 2), screen_h / 4])
-        screen.blit(txt_begin, [screen_w / 2 - (txt_begin.get_width() / 2), screen_h / 2])
+        # Draw UI
+        screen.blit(
+            text['title'], 
+            [screen_w/2 - (text['title'].get_width()/2), screen_h/10])
+
+        screen.blit(
+            key_sprites['up'], 
+            [screen_w/4 - (key_size/2), screen_h/2 - (key_size) - 3])
+        
+        screen.blit(
+            key_sprites['left'], 
+            [screen_w/4 - (key_size*1.5) - 3, screen_h/2])
+        
+        screen.blit(
+            key_sprites['right'], 
+            [screen_w/4 + (key_size*0.5) + 3, screen_h/2])
+        
+        screen.blit(
+            key_sprites['down'], 
+            [screen_w/4 - (key_size/2), screen_h/2])
+        
+        screen.blit(
+            text['space'], 
+            [screen_w - (screen_w/4) - (text['space'].get_width()/2), screen_h/2 + (key_size/8)])
+        
+        screen.blit(
+            text['shoot'], 
+            [screen_w - (screen_w/4) - (text['shoot'].get_width()/2), screen_h/2 + (key_size/2) + (text['space'].get_height())])
+        
+        screen.blit(
+            text['move'], 
+            [screen_w/4 - (text['move'].get_width()/2), screen_h/2 + (key_size/2) + (text['space'].get_height())])
+        
+        screen.blit(
+            text['begin'], 
+            [screen_w / 2 - (text['begin'].get_width() / 2), screen_h / 2 + (key_size*5)])
 
         clock.tick(FRAMERATE * 4)
         pygame.display.update()
@@ -254,7 +321,7 @@ def main():
         for i in range(player.lives):
             screen.blit(player.heart, [screen_w - (player.heart.get_width() * (i + 1) + 15), 15])
         
-        score = font.render("{:08d}".format(player.score), False, [255, 255, 255])
+        score = font_normal.render("{:08d}".format(player.score), False, [255, 255, 255])
         screen.blit(score, [15, 15])
 
         # End of loop
@@ -263,11 +330,7 @@ def main():
         pygame.display.update()
 
         if dead:
-            score_font = pygame.font.Font('data/font/8-BIT_WONDER.TTF', 18)
-            txt_score = score_font.render("score " + str(player.score),  False, [255, 255, 255])
-            txt_dead = font.render("You died",     False, [255, 255, 255])
-            txt_continue = font.render("[ SPACE ]   Continue", False, [255, 255, 255])
-            txt_quit = font.render("[ ESC ]       Exit",    False, [255, 255, 255])
+            text_score = font_small.render("SCORE:  " + str(player.score),  False, [255, 255, 255])
             while dead:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
@@ -291,10 +354,27 @@ def main():
                             speed = 5
                 
                 screen.fill([0, 0, 0])
-                screen.blit(txt_dead, [screen_w / 2 - (txt_dead.get_width() / 2), screen_h / 4])
-                screen.blit(txt_score, [screen_w / 2 - (txt_score.get_width() / 2), screen_h / 4 + (2 * txt_dead.get_height())])
-                screen.blit(txt_continue, [screen_w / 2 - (txt_continue.get_width() / 2), screen_h / 2])
-                screen.blit(txt_quit, [screen_w / 2 - (txt_continue.get_width() / 2), screen_h / 2 + txt_continue.get_height() * 2])
+                
+                screen.blit(
+                    text['game_over'], 
+                    [screen_w / 2 - (text['game_over'].get_width() / 2), 
+                    screen_h / 4])
+                
+                screen.blit(
+                    text_score, 
+                    [screen_w / 2 - (text_score.get_width() / 2), 
+                    screen_h / 4 + (2 * text['game_over'].get_height())])
+                
+                screen.blit(
+                    text['restart'], 
+                    [screen_w / 2 - (text['restart'].get_width() / 2), 
+                    screen_h / 2])
+                
+                screen.blit(
+                    text['quit'], 
+                    [screen_w / 2 - (text['restart'].get_width() / 2), 
+                    screen_h / 2 + text['restart'].get_height() * 2])
+                
                 pygame.display.update()
 
 if __name__ == "__main__":
