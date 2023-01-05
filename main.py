@@ -143,7 +143,40 @@ def main():
         # Draw UI
         screen.blit(
             text['title'], 
-            [screen_w/2 - (text['title'].get_width()/2), screen_h/10])
+            [screen_w/2 - (text['title'].get_width()/2), screen_h/4])
+        
+        screen.blit(
+            text['begin'], 
+            [screen_w / 2 - (text['begin'].get_width() / 2), screen_h / 2 + (key_size*5)])
+
+        clock.tick(FRAMERATE * 4)
+        pygame.display.update()
+    
+    duration = 0
+    frame = 0
+    frame_shield = 10
+
+    time_limit = 2.5 * FRAMERATE
+    time_passed = 0
+
+    # Tutorial loop
+    while time_passed < time_limit:
+        time_passed = time_passed + 1
+
+        # Update background
+        for star in stars:
+            star.update()
+            if star.out_of_bounds(screen_h):
+                stars.remove(star)
+                stars.append(BackgroundStar(screen_w, screen_h, y = -10))
+        
+        # Draw background
+        screen.fill([0, 0, 0])
+        for star in stars:
+            star.draw(screen)
+
+        # Draw player
+        screen.blit(player.sprite, player.position)
 
         screen.blit(
             key_sprites['up'], 
@@ -173,16 +206,8 @@ def main():
             text['move'], 
             [screen_w/4 - (text['move'].get_width()/2), screen_h/2 + (key_size/2) + (text['space'].get_height())])
         
-        screen.blit(
-            text['begin'], 
-            [screen_w / 2 - (text['begin'].get_width() / 2), screen_h / 2 + (key_size*5)])
-
-        clock.tick(FRAMERATE * 4)
+        clock.tick(FRAMERATE)
         pygame.display.update()
-    
-    duration = 0
-    frame = 0
-    frame_shield = 10
 
     # Main loop
     while True:
